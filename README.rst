@@ -143,6 +143,12 @@ using ``-name``:
 
     php php-cs-fixer.phar fix /path/to/dir --fixers=-short_tag,-indentation
 
+When using combination with exact and blacklist fixers, apply exact fixers along with above blacklisted result:
+
+.. code-block:: bash
+
+    php php-cs-fixer.phar fix /path/to/dir --fixers=linefeed,-short_tag
+
 A combination of ``--dry-run`` and ``--diff`` will
 display summary of proposed fixes, leaving your files unchanged.
 

@@ -23,9 +23,9 @@ use Symfony\CS\ErrorsManager;
 use Symfony\CS\Fixer;
 use Symfony\CS\FixerFileProcessedEvent;
 use Symfony\CS\FixerInterface;
+use Symfony\CS\FixersResolver;
 use Symfony\CS\Config\Config;
 use Symfony\CS\ConfigInterface;
-use Symfony\CS\Console\FixersResolver;
 use Symfony\CS\StdinFileInfo;
 
 /**
@@ -133,6 +133,10 @@ You can also blacklist the fixers you don't want if this is more convenient,
 using <comment>-name</comment>:
 
     <info>php %command.full_name% /path/to/dir --fixers=-short_tag,-indentation</info>
+
+When using combination with exact and blacklist fixers, apply exact fixers along with above blacklisted result:
+
+    <info>php php-cs-fixer.phar fix /path/to/dir --fixers=linefeed,-short_tag</info>
 
 A combination of <comment>--dry-run</comment> and <comment>--diff</comment> will
 display summary of proposed fixes, leaving your files unchanged.
@@ -275,8 +279,19 @@ EOF
         // register custom fixers from config
         $this->fixer->registerCustomFixers($config->getCustomFixers());
 
-        $fixersResolver = new FixersResolver($this->fixer, $config);
-        $fixers = $fixersResolver->resolve($input->getOption('level'), $input->getOption('fixers'));
+        $fixersResolver = new FixersResolver($this->fixer->getFixers());
+
+        $levelOption = $input->getOption('level');
+        $fixersOption = $input->getOption('fixers');
+        if (null === $levelOption
+            && (empty($fixersOption) || preg_match('{(^|,)-}', $fixersOption))
+        ) {
+            $levelOption = $config->getFixers();
+        }
+
+        $fixers = $fixersResolver->resolveByLevel($levelOption);
+        $fixers = $fixersResolver->resolveByNames($fixers, $fixersOption);
+
         $config->fixers($fixers);
 
         $verbosity = $output->getVerbosity();

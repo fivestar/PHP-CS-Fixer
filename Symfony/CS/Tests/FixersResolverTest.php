@@ -9,11 +9,11 @@
  * with this source code in the file LICENSE.
  */
 
-namespace Symfony\CS\Tests\Console;
+namespace Symfony\CS\Tests;
 
 use Symfony\CS\Fixer;
-use Symfony\CS\Config\Config;
-use Symfony\CS\Console\FixersResolver;
+use Symfony\CS\FixerInterface;
+use Symfony\CS\FixersResolver;
 
 class FixersResolverTest extends \PHPUnit_Framework_TestCase
 {
@@ -22,14 +22,26 @@ class FixersResolverTest extends \PHPUnit_Framework_TestCase
         $this->fixer = new Fixer();
         $this->fixer->registerBuiltInFixers();
         $this->fixer->registerBuiltInConfigs();
-        $this->config = new Config();
 
-        $this->resolver = new FixersResolver($this->fixer, $this->config);
+        $this->resolver = new FixersResolver($this->fixer->getFixers());
     }
 
-    public function testResolveFiltersMixedWithAddAndRemove()
+    public function testResolveByLevel()
     {
-        $fixers = $this->resolver->resolve('psr1', '-encoding,php_closing_tag');
+        $fixers = $this->resolver->resolveByLevel('psr1');
+
+        foreach ($fixers as $fixer) {
+            if ($fixer->getLevel() !== ($fixer->getLevel() & FixerInterface::PSR1_LEVEL)) {
+                $this->fail();
+            }
+        }
+    }
+
+    public function testResolveByNamesMixedWithAddAndRemove()
+    {
+        $fixers = $this->resolver->resolveByLevel('psr1');
+
+        $fixers = $this->resolver->resolveByNames($fixers, '-encoding,php_closing_tag');
 
         $enabledEncoding = false;
         $enabledPhpClosingTag = false;
