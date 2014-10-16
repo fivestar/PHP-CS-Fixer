@@ -279,20 +279,10 @@ EOF
         // register custom fixers from config
         $this->fixer->registerCustomFixers($config->getCustomFixers());
 
-        $fixersResolver = new FixersResolver($this->fixer->getFixers());
+        $resolver = new FixersResolver($this->fixer->getFixers(), $config);
+        $resolver->resolve($input->getOption('level'), $input->getOption('fixers'));
 
-        $levelOption = $input->getOption('level');
-        $fixersOption = $input->getOption('fixers');
-        if (null === $levelOption
-            && (empty($fixersOption) || preg_match('{(^|,)-}', $fixersOption))
-        ) {
-            $levelOption = $config->getFixers();
-        }
-
-        $fixers = $fixersResolver->resolveByLevel($levelOption);
-        $fixers = $fixersResolver->resolveByNames($fixers, $fixersOption);
-
-        $config->fixers($fixers);
+        $config->fixers($resolver->getFixers());
 
         $verbosity = $output->getVerbosity();
         $listenForFixerFileProcessedEvent = OutputInterface::VERBOSITY_VERY_VERBOSE <= $verbosity;

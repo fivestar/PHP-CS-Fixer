@@ -11,8 +11,8 @@
 
 namespace Symfony\CS\Tests;
 
+use Symfony\CS\Config\Config;
 use Symfony\CS\Fixer;
-use Symfony\CS\FixerInterface;
 use Symfony\CS\FixersResolver;
 
 class FixersResolverTest extends \PHPUnit_Framework_TestCase
@@ -23,25 +23,16 @@ class FixersResolverTest extends \PHPUnit_Framework_TestCase
         $this->fixer->registerBuiltInFixers();
         $this->fixer->registerBuiltInConfigs();
 
-        $this->resolver = new FixersResolver($this->fixer->getFixers());
+        $this->config = new Config();
+
+        $this->resolver = new FixersResolver($this->fixer->getFixers(), $this->config);
     }
 
-    public function testResolveByLevel()
+    public function testResolveWithIncludeAndExcludeNames()
     {
-        $fixers = $this->resolver->resolveByLevel('psr1');
+        $this->resolver->resolve('psr1', '-encoding,php_closing_tag');
 
-        foreach ($fixers as $fixer) {
-            if ($fixer->getLevel() !== ($fixer->getLevel() & FixerInterface::PSR1_LEVEL)) {
-                $this->fail();
-            }
-        }
-    }
-
-    public function testResolveByNamesMixedWithAddAndRemove()
-    {
-        $fixers = $this->resolver->resolveByLevel('psr1');
-
-        $fixers = $this->resolver->resolveByNames($fixers, '-encoding,php_closing_tag');
+        $fixers = $this->resolver->getFixers();
 
         $enabledEncoding = false;
         $enabledPhpClosingTag = false;

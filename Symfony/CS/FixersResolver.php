@@ -17,35 +17,33 @@ namespace Symfony\CS;
  */
 class FixersResolver
 {
-    public function __construct(array $allFixers)
+    protected $allFixers;
+    protected $fixers;
+    protected $config;
+
+    public function __construct(array $allFixers, ConfigInterface $config)
     {
         $this->allFixers = $allFixers;
+        $this->fixers = $allFixers;
+        $this->config = $config;
     }
 
-    public function resolveByLevel($levelOption)
+    public function resolve($levelOption, $fixerOption)
     {
-        $fixers = array();
+        $this->resolveByLevel($levelOption, $fixerOption);
+        $this->resolveByNames($fixerOption);
+    }
 
-        if (is_string($levelOption)) {
-            switch ($levelOption) {
-                case 'psr0':
-                    $level = FixerInterface::PSR0_LEVEL;
-                    break;
-                case 'psr1':
-                    $level = FixerInterface::PSR1_LEVEL;
-                    break;
-                case 'psr2':
-                    $level = FixerInterface::PSR2_LEVEL;
-                    break;
-                case 'symfony':
-                    $level = FixerInterface::SYMFONY_LEVEL;
-                    break;
-                default:
-                    throw new \InvalidArgumentException(sprintf('The level "%s" is not defined.', $levelOption));
-            }
-        } else {
-            $level = $levelOption;
-        }
+    public function getFixers()
+    {
+        return $this->fixers;
+    }
+
+    protected function resolveByLevel($levelOption, $fixerOption)
+    {
+        $level = $this->parseLevelOption($levelOption, $fixerOption);
+
+        $fixers = array();
 
         // select base fixers for the given level
         if (is_array($level)) {
@@ -62,37 +60,57 @@ class FixersResolver
             }
         }
 
-        return $fixers;
+        $this->fixers = $fixers;
     }
 
-    public function resolveByNames(array $fixers, $names)
+    protected function resolveByNames($fixerOption)
     {
-        if (!is_array($names)) {
-            $names = array_map('trim', explode(',', $names));
-        }
+        $names = array_map('trim', explode(',', $fixerOption));
 
         $addNames = array();
         $removeNames = array();
         foreach ($names as $name) {
             if (0 === strpos($name, '-')) {
-                $removeNames[] = ltrim($name, '-');
+                $removeNames[ltrim($name, '-')] = true;
             } else {
-                $addNames[] = $name;
+                $addNames[$name] = true;
             }
         }
 
-        foreach ($fixers as $key => $fixer) {
-            if (in_array($fixer->getName(), $removeNames, true)) {
-                unset($fixers[$key]);
+        foreach ($this->fixers as $key => $fixer) {
+            if (isset($removeNames[$fixer->getName()])) {
+                unset($this->fixers[$key]);
             }
         }
 
         foreach ($this->allFixers as $fixer) {
-            if (in_array($fixer->getName(), $addNames, true) && !in_array($fixer, $fixers, true)) {
-                $fixers[] = $fixer;
+            if (isset($addNames[$fixer->getName()]) && !in_array($fixer, $this->fixers, true)) {
+                $this->fixers[] = $fixer;
             }
         }
+    }
 
-        return $fixers;
+    protected function parseLevelOption($levelOption, $fixerOption)
+    {
+        static $levelMap = array(
+            'psr0'    => FixerInterface::PSR0_LEVEL,
+            'psr1'    => FixerInterface::PSR1_LEVEL,
+            'psr2'    => FixerInterface::PSR2_LEVEL,
+            'symfony' => FixerInterface::SYMFONY_LEVEL,
+        );
+
+        if (isset($levelMap[$levelOption])) {
+            $level = $levelMap[$levelOption];
+        } elseif (null === $levelOption) {
+            if (empty($fixerOption) || preg_match('{(^|,)-}', $fixerOption)) {
+                $level = $this->config->getFixers();
+            } else {
+                $level = null;
+            }
+        } else {
+            throw new \InvalidArgumentException(sprintf('The level "%s" is not defined.', $levelOption));
+        }
+
+        return $level;
     }
 }
