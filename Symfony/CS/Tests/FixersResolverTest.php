@@ -30,9 +30,7 @@ class FixersResolverTest extends \PHPUnit_Framework_TestCase
 
     public function testResolveWithIncludeAndExcludeNames()
     {
-        $this->resolver->resolve('psr1', '-encoding,php_closing_tag');
-
-        $fixers = $this->resolver->getFixers();
+        $fixers = $this->resolver->resolve('psr1', '-encoding,php_closing_tag');
 
         $enabledEncoding = false;
         $enabledPhpClosingTag = false;

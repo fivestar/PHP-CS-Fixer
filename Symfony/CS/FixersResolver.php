@@ -32,6 +32,8 @@ class FixersResolver
     {
         $this->resolveByLevel($levelOption, $fixerOption);
         $this->resolveByNames($fixerOption);
+
+        return $this->getFixers();
     }
 
     public function getFixers()
@@ -45,18 +47,9 @@ class FixersResolver
 
         $fixers = array();
 
-        // select base fixers for the given level
-        if (is_array($level)) {
-            foreach ($this->allFixers as $fixer) {
-                if (in_array($fixer->getName(), $level, true) || in_array($fixer, $level, true)) {
-                    $fixers[] = $fixer;
-                }
-            }
-        } else {
-            foreach ($this->allFixers as $fixer) {
-                if ($fixer->getLevel() === ($fixer->getLevel() & $level)) {
-                    $fixers[] = $fixer;
-                }
+        foreach ($this->allFixers as $fixer) {
+            if ($fixer->getLevel() === ($fixer->getLevel() & $level)) {
+                $fixers[] = $fixer;
             }
         }
 
@@ -65,7 +58,7 @@ class FixersResolver
 
     protected function resolveByNames($fixerOption)
     {
-        $names = array_map('trim', explode(',', $fixerOption));
+        $names = $this->parseFixerOption($fixerOption);
 
         $addNames = array();
         $removeNames = array();
@@ -102,15 +95,34 @@ class FixersResolver
         if (isset($levelMap[$levelOption])) {
             $level = $levelMap[$levelOption];
         } elseif (null === $levelOption) {
-            if (empty($fixerOption) || preg_match('{(^|,)-}', $fixerOption)) {
-                $level = $this->config->getFixers();
+            $level = null;
+
+            $names = $this->parseFixerOption($fixerOption);
+            if (empty($names)) {
+                $level = $this->config->getLevel();
             } else {
-                $level = null;
+                foreach ($names as $name) {
+                    if (0 === strpos($name, '-')) {
+                        $level = $this->config->getLevel();
+                        break;
+                    }
+                }
             }
         } else {
             throw new \InvalidArgumentException(sprintf('The level "%s" is not defined.', $levelOption));
         }
 
         return $level;
+    }
+
+    protected function parseFixerOption($fixerOption)
+    {
+        if (null === $fixerOption) {
+            $names = $this->config->getFixers();
+        } else {
+            $names = array_map('trim', explode(',', $fixerOption));
+        }
+
+        return $names;
     }
 }
