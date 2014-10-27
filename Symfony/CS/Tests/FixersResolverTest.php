@@ -17,15 +17,17 @@ use Symfony\CS\FixersResolver;
 
 class FixersResolverTest extends \PHPUnit_Framework_TestCase
 {
+    protected $resolver;
+
     protected function setUp()
     {
-        $this->fixer = new Fixer();
-        $this->fixer->registerBuiltInFixers();
-        $this->fixer->registerBuiltInConfigs();
+        $fixer = new Fixer();
+        $fixer->registerBuiltInFixers();
+        $fixer->registerBuiltInConfigs();
 
-        $this->config = new Config();
+        $config = new Config();
 
-        $this->resolver = new FixersResolver($this->fixer->getFixers(), $this->config);
+        $this->resolver = new FixersResolver($fixer->getFixers(), $config);
     }
 
     public function testResolveWithIncludeAndExcludeNames()
