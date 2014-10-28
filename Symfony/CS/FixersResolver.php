@@ -63,7 +63,7 @@ class FixersResolver
     /**
      * Returns fixers.
      *
-     * @return array An array of FixerInterface
+     * @return FixerInterface[] An array of FixerInterface
      */
     public function getFixers()
     {
@@ -72,7 +72,7 @@ class FixersResolver
 
     protected function resolveByLevel()
     {
-        $level = $this->parseLevelOption();
+        $level = $this->parseLevel();
 
         if (null === $level) {
             return;
@@ -91,7 +91,11 @@ class FixersResolver
 
     protected function resolveByNames()
     {
-        $names = $this->parseFixersOption();
+        $names = $this->parseFixers();
+
+        if (null === $names) {
+            return;
+        }
 
         $addNames = array();
         $removeNames = array();
@@ -116,7 +120,7 @@ class FixersResolver
         }
     }
 
-    protected function parseLevelOption()
+    protected function parseLevel()
     {
         static $levelMap = array(
             'psr0'    => FixerInterface::PSR0_LEVEL,
@@ -135,14 +139,12 @@ class FixersResolver
             return $levelMap[$levelOption];
         }
 
-        $names = $this->parseFixersOption();
-
-        if (empty($names)) {
+        if (null === $this->options['fixers']) {
             return $this->config->getLevel();
         }
 
-        foreach ($names as $name) {
-            if (0 === strpos($name, '-')) {
+        foreach ($this->parseFixers() as $fixer) {
+            if (0 === strpos($fixer, '-')) {
                 return $this->config->getLevel();
             }
         }
@@ -150,14 +152,16 @@ class FixersResolver
         return null;
     }
 
-    protected function parseFixersOption()
+    protected function parseFixers()
     {
-        $fixersOption = $this->options['fixers'];
+        if (null !== $this->options['fixers']) {
+            return array_map('trim', explode(',', $this->options['fixers']));
+        }
 
-        if (null === $fixersOption) {
+        if (null === $this->options['level']) {
             return $this->config->getFixers();
         }
 
-        return array_map('trim', explode(',', $fixersOption));
+        return null;
     }
 }
